@@ -599,6 +599,8 @@ STYLE: Natural and human. Clear and concise. Max 2-3 sentences. No buzzwords, no
 
 CONTENT: Answer the specific question asked — do not add unrelated GetAccept features. Only mention Digital Sales Rooms, e-sign, proposals, or stakeholder alignment if they are directly relevant to what the question is about.
 
+INPUT PRIORITY: You may receive two types of input — "Topics selected" (short chip labels as general context) and "User's own words" (free text written by the user). If "User's own words" is present, it is the PRIMARY source — the answer MUST reflect the specific details, phrases, or examples from it. The chip topics are secondary context only. Never produce a generic answer that ignores what the user wrote.
+
 If the question is about problems solved → focus on what was broken before and what improved.
 If the question is about features → name the specific feature and what it does for them.
 If the question is about improvements/missing features → be honest and constructive, or affirm satisfaction if "None" was selected.
@@ -610,8 +612,18 @@ Return ONLY the improved answer text, nothing else.`;
 
 const VARY_SYSTEM = `Rephrase the following G2 review answer so it sounds like a different person wrote it. Change the sentence structure, vary the word choices, and adjust the opening. Keep all the same facts and meaning. Do not add new claims. Keep the same perspective (first person "I"/"we", or third person) as the original — do not switch voice. Natural, human tone. Max 2-3 sentences. Return ONLY the rephrased text, nothing else.`;
 
-async function improveAnswer(questionText, rawAnswer) {
-  return callAI(getImproveSystem(state.customerName), `Question: ${questionText}\nAnswer: ${rawAnswer}`);
+async function improveAnswer(questionText, chips, writtenText) {
+  let userInput = `Question: ${questionText}\n`;
+
+  if (chips && writtenText) {
+    userInput += `Topics selected: ${chips}\nUser's own words (PRIORITY — must be reflected in the answer): ${writtenText}`;
+  } else if (writtenText) {
+    userInput += `Answer: ${writtenText}`;
+  } else {
+    userInput += `Answer: ${chips}`;
+  }
+
+  return callAI(getImproveSystem(state.customerName), userInput);
 }
 
 async function varyAnswer(answer) {
@@ -927,7 +939,7 @@ async function submitAnswer() {
 
   try {
     const q = activeQuestions[state.currentQuestionIndex];
-    state.currentSuggested = await improveAnswer(q.text, combined);
+    state.currentSuggested = await improveAnswer(q.text, chipsPart, raw);
   } catch (e) {
     if (e.message === 'no_key') {
       showToast('Add your API key in Settings');
