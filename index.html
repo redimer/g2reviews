@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G2 Review Assistant — GetAccept</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --purple: #6C3CE1;
+      --purple-hover: #5A2FBF;
+      --purple-light: #F0EBFF;
+      --purple-border: #D4C5F9;
+      --text-primary: #111827;
+      --text-secondary: #4B5563;
+      --text-muted: #9CA3AF;
+      --border: #E5E7EB;
+      --bg: #F8F7FF;
+      --white: #FFFFFF;
+      --radius-sm: 8px;
+      --radius: 12px;
+      --radius-lg: 16px;
+      --shadow: 0 2px 12px rgba(108,60,225,0.07), 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-lg: 0 8px 32px rgba(108,60,225,0.12);
+      --transition: 0.18s ease;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body {
+      font-family: 'DM Sans', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* ── Header ── */
+    .header {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 54px;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px;
+      z-index: 100;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 600; font-size: 14px; color: var(--text-primary);
+    }
+    .logo-mark {
+      width: 28px; height: 28px; background: var(--purple);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-mark svg { color: white; }
+    .logo-sub { font-weight: 400; color: var(--text-muted); font-size: 13px; margin-left: 2px; }
+    .btn-icon {
+      width: 34px; height: 34px; border: none; background: transparent;
+      border-radius: var(--radius-sm); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted); transition: all var(--transition);
+    }
+    .btn-icon:hover { background: var(--purple-light); color: var(--purple); }
+
+    /* ── Progress bar ── */
+    .progress-wrap {
+      position: fixed; top: 54px; left: 0; right: 0;
+      height: 2px; background: var(--border); z-index: 99;
+    }
+    .progress-bar {
+      height: 100%; background: var(--purple);
+      transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    /* ── Main ── */
+    .main { padding-top: 72px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+    .container { width: 100%; max-width: 620px; padding: 32px 20px 80px; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px 32px;
+      box-shadow: var(--shadow);
+    }
+
+    /* ── Fields ── */
+    .field { margin-bottom: 18px; }
+    .field label {
+      display: block; font-size: 11px; font-weight: 600;
+      color: var(--text-muted); margin-bottom: 6px;
+      text-transform: uppercase; letter-spacing: 0.7px;
+    }
+    .field input, .field select {
+      width: 100%; padding: 10px 13px;
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 14px; color: var(--text-primary);
+      background: var(--white); outline: none; transition: border-color var(--transition);
+    }
+    .field input:focus, .field select:focus { border-color: var(--purple); }
+    .field input::placeholder { color: var(--text-muted); }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      padding: 10px 20px; border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 14px; font-weight: 500;
+      cursor: pointer; border: none; transition: all var(--transition);
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--purple); color: white; }
+    .btn-primary:not(:disabled):hover { background: var(--purple-hover); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(108,60,225,0.3); }
+    .btn-primary:not(:disabled):active { transform: translateY(0); }
+    .btn-secondary { background: var(--white); color: var(--text-primary); border: 1.5px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--purple); color: var(--purple); }
+    .btn-ghost { background: transparent; color: var(--text-secondary); }
+    .btn-ghost:hover { color: var(--text-primary); background: var(--bg); }
+    .btn-full { width: 100%; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* ── Question screen ── */
+    .q-step {
+      font-size: 11px; font-weight: 600; color: var(--purple);
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
+    }
+    .q-text {
+      font-size: 17px; font-weight: 600; color: var(--text-primary);
+      margin-bottom: 22px; letter-spacing: -0.3px; line-height: 1.45;
+    }
+    textarea {
+      width: 100%; padding: 11px 13px;
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 14px; color: var(--text-primary);
+      background: var(--white); resize: vertical; min-height: 110px;
+      outline: none; transition: border-color var(--transition); line-height: 1.6;
+    }
+    textarea:focus { border-color: var(--purple); }
+    textarea::placeholder { color: var(--text-muted); }
+
+    /* ── Suggestion ── */
+    .suggestion-wrap { margin-top: 18px; }
+    .suggestion-label {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.7px; color: var(--purple); margin-bottom: 8px;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .suggestion-card {
+      background: var(--purple-light); border: 1.5px solid var(--purple-border);
+      border-radius: var(--radius-sm); padding: 14px 16px;
+      font-size: 14px; color: var(--text-primary); line-height: 1.65; margin-bottom: 14px;
+    }
+    .suggestion-edit {
+      width: 100%; padding: 14px 16px; margin-bottom: 14px;
+      background: var(--purple-light); border: 1.5px solid var(--purple);
+      border-radius: var(--radius-sm); font-family: inherit;
+      font-size: 14px; color: var(--text-primary); line-height: 1.65;
+      resize: vertical; min-height: 90px; outline: none;
+    }
+
+    /* ── Loading ── */
+    .loading-wrap {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 0; color: var(--text-secondary); font-size: 13px;
+    }
+    .spinner {
+      width: 16px; height: 16px; border: 2px solid var(--border);
+      border-top-color: var(--purple); border-radius: 50%;
+      animation: spin 0.55s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Auto answer (Q12) ── */
+    .auto-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0;
+      border-radius: 20px; padding: 3px 11px; font-size: 11px; font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .rating-display {
+      font-size: 52px; font-weight: 700; color: var(--purple);
+      letter-spacing: -3px; margin: 10px 0 8px; line-height: 1;
+    }
+
+    /* ── Summary ── */
+    .summary-item { border-bottom: 1px solid var(--border); padding: 18px 0; }
+    .summary-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .summary-q {
+      font-size: 11px; font-weight: 500; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;
+    }
+    .summary-a { font-size: 14px; color: var(--text-primary); line-height: 1.6; }
+
+    /* ── PDF screen ── */
+    .versions-row { display: flex; align-items: center; gap: 10px; margin: 14px 0 20px; }
+    .version-input {
+      width: 70px; text-align: center; padding: 9px;
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      font-size: 17px; font-weight: 600; color: var(--text-primary);
+      font-family: inherit; outline: none;
+    }
+    .version-input:focus { border-color: var(--purple); }
+    .version-btn {
+      width: 34px; height: 34px; border: 1.5px solid var(--border);
+      background: var(--white); border-radius: var(--radius-sm);
+      font-size: 18px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary); transition: all var(--transition);
+    }
+    .version-btn:hover { border-color: var(--purple); color: var(--purple); }
+    .progress-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .pill {
+      padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+      background: var(--border); color: var(--text-muted); transition: all 0.3s ease;
+    }
+    .pill.done { background: #ECFDF5; color: #059669; }
+    .pill.active { background: var(--purple-light); color: var(--purple); animation: pulse 1s ease infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+
+    /* ── Email screen ── */
+    .email-box {
+      background: #F9FAFB; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      padding: 18px; font-size: 14px; line-height: 1.75; color: var(--text-primary);
+      white-space: pre-wrap; font-family: inherit; margin-top: 12px;
+    }
+
+    /* ── Settings overlay ── */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.35);
+      z-index: 200; display: flex; align-items: flex-start; justify-content: flex-end;
+      padding: 62px 16px 16px;
+    }
+    .settings-panel {
+      background: var(--white); border-radius: var(--radius-lg);
+      padding: 24px; width: 320px; box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border);
+    }
+    .settings-panel h2 { font-size: 15px; font-weight: 600; margin-bottom: 18px; }
+    .key-display {
+      font-family: 'Courier New', monospace; font-size: 12px; color: var(--text-muted);
+      background: var(--bg); padding: 7px 11px; border-radius: 6px; margin-bottom: 10px;
+      border: 1px solid var(--border);
+    }
+    .divider { height: 1px; background: var(--border); margin: 18px 0; }
+    .danger-btn { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+    .danger-btn:hover { background: #FEE2E2; }
+    .provider-tabs {
+      display: flex; gap: 0; margin-bottom: 4px;
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm); overflow: hidden;
+    }
+    .provider-tab {
+      flex: 1; padding: 8px 10px; border: none; background: var(--white);
+      font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+      color: var(--text-muted); transition: all var(--transition); line-height: 1.3;
+    }
+    .provider-tab:first-child { border-right: 1px solid var(--border); }
+    .provider-tab.active { background: var(--purple); color: white; }
+    .provider-tab:not(.active):hover { background: var(--purple-light); color: var(--purple); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--text-primary); color: white;
+      padding: 11px 18px; border-radius: 8px; font-size: 13px;
+      z-index: 999; transition: transform 0.25s ease; white-space: nowrap;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Screen animation ── */
+    .screen { animation: fadeUp 0.28s ease; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Welcome hero ── */
+    .welcome-hero {
+      background: linear-gradient(135deg, var(--purple) 0%, #9B6DFF 100%);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 28px 32px 24px;
+      margin: -28px -32px 28px;
+    }
+    .welcome-hero h1 {
+      font-size: 20px; font-weight: 700; color: white;
+      letter-spacing: -0.5px; margin-bottom: 6px;
+    }
+    .welcome-hero p { font-size: 13px; color: rgba(255,255,255,0.75); line-height: 1.5; }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size: 18px; font-weight: 600; letter-spacing: -0.3px;
+      margin-bottom: 4px;
+    }
+    .section-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 22px; }
+
+    /* ── Alert info ── */
+    .alert-info {
+      display: flex; align-items: flex-start; gap: 8px;
+      background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: var(--radius-sm);
+      padding: 10px 13px; font-size: 13px; color: #1D4ED8; margin-top: 12px; line-height: 1.5;
+    }
+    .alert-info svg { flex-shrink: 0; margin-top: 1px; }
+    .pdf-generating-wrap, .pdf-done-wrap {
+      padding: 12px 0 4px;
+    }
+    /* ── Alert warn ── */
+    .alert-warn {
+      background: #FFFBEB; border: 1px solid #FDE68A; border-radius: var(--radius-sm);
+      padding: 10px 13px; font-size: 13px; color: #92400E; margin-top: 8px;
+    }
+
+    /* ── Example chips ── */
+    .examples-section { margin-bottom: 18px; }
+    .examples-label {
+      font-size: 11px; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .chips-wrap { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 400;
+      border: 1.5px solid var(--border); background: var(--white);
+      color: var(--text-secondary); cursor: pointer;
+      transition: all var(--transition); user-select: none; line-height: 1.3;
+    }
+    .chip:hover { border-color: var(--purple); color: var(--purple); background: var(--purple-light); }
+    .chip.selected {
+      background: var(--purple); border-color: var(--purple); color: white; font-weight: 500;
+    }
+    .chip.selected:hover { background: var(--purple-hover); border-color: var(--purple-hover); }
+    .chip-check { display: none; }
+    .chip.selected .chip-check { display: inline; }
+    .chip.selected .chip-plus { display: none; }
+    .chip-none { border-style: dashed; color: var(--text-muted); }
+    .chip-none:hover { border-color: #10B981; color: #059669; background: #ECFDF5; border-style: dashed; }
+    .chip-none.selected { background: #059669; border-color: #059669; border-style: solid; color: white; }
+    .selection-preview {
+      background: var(--bg); border: 1.5px solid var(--purple-border);
+      border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 10px;
+    }
+    .selection-preview-text { display: flex; flex-wrap: wrap; gap: 5px; }
+    .preview-tag {
+      background: white; border: 1px solid var(--purple-border);
+      border-radius: 4px; padding: 2px 8px; font-size: 12px; color: var(--text-secondary);
+    }
+    .or-divider {
+      display: flex; align-items: center; gap: 10px; margin: 16px 0 10px;
+      font-size: 11px; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.7px;
+    }
+    .or-divider::before, .or-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      .container { padding: 20px 14px 60px; }
+      .card { padding: 20px; }
+      .welcome-hero { padding: 22px 20px 20px; margin: -20px -20px 22px; }
+      .q-text { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-mark">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M9 12l2 2 4-4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/>
+      </svg>
+    </div>
+    GetAccept
+    <span class="logo-sub">G2 Review Assistant</span>
+  </div>
+  <button class="btn-icon" onclick="toggleSettings()" title="Settings">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
+</header>
+
+<!-- Progress -->
+<div class="progress-wrap">
+  <div class="progress-bar" id="progressBar" style="width:0%"></div>
+</div>
+
+<!-- App -->
+<main class="main">
+  <div class="container" id="appContainer"></div>
+</main>
+
+<!-- Settings overlay -->
+<div class="overlay" id="settingsOverlay" style="display:none" onclick="handleOverlayClick(event)">
+  <div class="settings-panel" onclick="event.stopPropagation()">
+    <h2>Settings</h2>
+
+    <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:8px">AI Provider</label>
+    <div class="provider-tabs" id="providerTabs">
+      <button class="provider-tab" id="tabAnthropic" onclick="selectProvider('anthropic')">Anthropic (Claude)</button>
+      <button class="provider-tab" id="tabOpenAI" onclick="selectProvider('openai')">ChatGPT (OpenAI)</button>
+    </div>
+
+    <!-- Anthropic section -->
+    <div id="sectionAnthropic">
+      <div class="field" style="margin-top:14px">
+        <label>Anthropic API Key</label>
+        <div class="key-display" id="keyDisplayAnthropic">No key saved</div>
+        <input type="password" id="apiKeyAnthropic" placeholder="sk-ant-..." autocomplete="off">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="saveApiKey('anthropic')">Save key</button>
+    </div>
+
+    <!-- OpenAI section -->
+    <div id="sectionOpenAI" style="display:none">
+      <div class="field" style="margin-top:14px">
+        <label>OpenAI API Key</label>
+        <div class="key-display" id="keyDisplayOpenAI">No key saved</div>
+        <input type="password" id="apiKeyOpenAI" placeholder="sk-..." autocomplete="off">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="saveApiKey('openai')">Save key</button>
+    </div>
+
+    <div class="divider"></div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Keys are stored only in this browser and sent directly to the chosen provider.</p>
+    <button class="btn danger-btn btn-full" onclick="resetApp()">Reset all data &amp; start over</button>
+    <div style="margin-top:12px">
+      <button class="btn btn-ghost btn-full" onclick="toggleSettings()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+const state = {
+  screen: 'welcome',
+  customerName: '',
+  numUsers: 1,
+  currentQuestionIndex: 0,
+  answers: [],          // { questionText, rawAnswer, finalAnswer }
+  currentRaw: '',
+  currentSuggested: '',
+  currentSelectedExamples: [],  // selected chip labels for current question
+  isLoading: false,
+  apiKey: localStorage.getItem('ga_api_key') || '',
+  openaiKey: localStorage.getItem('ga_openai_key') || '',
+  apiProvider: localStorage.getItem('ga_api_provider') || 'anthropic',
+  pdfVersions: 1,
+  pdfProgress: [],      // 'pending' | 'active' | 'done'
+  pdfGenerating: false,
+  generatedEmail: '',
+  emailLanguage: '',
+};
+
+// ════════════════════════════════════════════════════════
+//  QUESTIONS
+// ════════════════════════════════════════════════════════
+const BASE_QUESTIONS = [
+  { id: 1,  conditional: false, text: "What do your customers use GetAccept for?" },
+  { id: 2,  conditional: false, text: "What problems does GetAccept solve for your customer in their process?" },
+  { id: 3,  conditional: false, text: "What does your customer find most helpful about GetAccept when managing deals or agreements? Are there any specific features that make it particularly effective for their needs?" },
+  { id: 4,  conditional: false, text: "What does your customer particularly enjoy or think works especially well with GetAccept?" },
+  { id: 5,  conditional: true,  text: null }, // Dynamic text set below
+  { id: 6,  conditional: false, text: "What aspects of GetAccept could be improved or don't work as well for your customer?" },
+  { id: 7,  conditional: false, text: "Are there any features your customer feels are missing or could make GetAccept even more valuable for their workflow?" },
+  { id: 8,  conditional: false, text: "Do your customers use GetAccept together with any other tools, such as a CRM or other sales tools?" },
+  { id: 9,  conditional: false, text: "Did your customer switch to GetAccept from another solution?" },
+  { id: 10, conditional: false, text: "How was your customer's experience getting started with GetAccept?" },
+  { id: 11, conditional: false, text: "When using GetAccept, about how many people work at your customer's company?" },
+];
+
+// ════════════════════════════════════════════════════════
+//  EXAMPLE CHIPS PER QUESTION (keyed by question id)
+// ════════════════════════════════════════════════════════
+const QUESTION_EXAMPLES = {
+  1:  ["Digital Sales Rooms", "Proposals & quoting", "Contract management", "E-signatures", "Deal tracking", "Stakeholder engagement", "Onboarding documents", "NDAs", "Recruitment contracts", "Sales", "Business case", "MAP", "CPQ"],
+  2:  ["Too much back-and-forth on email", "Slow contract turnaround", "No visibility into deal status", "Hard to align stakeholders", "Manual signing process", "Scattered communication", "Long sales cycles", "No structured deal process", "Onboarding", "Bad buyer experience", "Process inconsistency"],
+  3:  ["Digital Sales Room", "E-signature", "Proposal builder", "Video messaging", "Document tracking & analytics", "Templates", "CRM integration", "Real-time open notifications", "Mobile access", "AI content generation", "Automated follow-ups", "Stakeholder mapping", "Deal insights / forecasting", "Mutual action plans"],
+  4:  ["Easy to use", "Fast to set up", "Professional-looking documents", "Real-time notifications", "Works well on mobile", "Great customer support", "Smooth integrations", "Saves time", "Keeps everything in one place", "AI assistance", "Automation", "Personalization", "Buyer engagement", "Process guidance"],
+  5:  [], // conditional follow-up — no predefined chips
+  6:  ["None — no major things", "Reporting & analytics", "Mobile app", "More template options", "Pricing / cost", "Loading speed", "UI complexity", "Notification settings", "Search functionality"],
+  7:  ["None — no major things", "Better reporting", "More CRM integrations", "Advanced template editor", "Bulk sending", "Custom branding options", "Offline access", "More language support", "Deeper analytics"],
+  8:  ["Salesforce", "HubSpot", "Pipedrive", "Microsoft Dynamics", "Slack", "Microsoft Teams", "Gmail / Outlook", "Zoom", "Monday.com"],
+  9:  ["DocuSign", "PandaDoc", "Adobe Sign", "Dropbox Sign (HelloSign)", "DealHub", "Proposify", "Qwilr", "Oneflow", "Trumpet", "Aligned", "Manual email process", "Built in-house solution", "Paper-based contracts", "No previous tool"],
+  10: ["Quick and smooth", "Good documentation", "Helpful support team", "Easy to onboard the team", "Self-service setup", "Could have been faster", "Needed some help to get started"],
+  11: ["1–10 employees", "11–50 employees", "51–200 employees", "201–500 employees", "501–1,000 employees", "1,000+ employees"],
+};
+
+const CONDITIONAL_KEYWORDS = ['contract','signature','sign','stakeholder','alignment','align','e-sign','esign','proposal'];
+
+let activeQuestions = [];
+
+function buildActiveQuestions() {
+  const earlyText = state.answers.slice(0, 4)
+    .map(a => (a.finalAnswer || a.rawAnswer || '').toLowerCase())
+    .join(' ');
+
+  let foundKeyword = CONDITIONAL_KEYWORDS.find(k => earlyText.includes(k)) || '';
+  const includeConditional = !!foundKeyword;
+
+  activeQuestions = BASE_QUESTIONS
+    .filter(q => !q.conditional || includeConditional)
+    .map(q => {
+      if (q.conditional) {
+        return { ...q, text: `You mentioned ${foundKeyword} earlier — could you share how that helps your customer in their process or when working with their stakeholders?` };
+      }
+      return q;
+    });
+
+  return activeQuestions;
+}
+
+// ════════════════════════════════════════════════════════
+//  API
+// ════════════════════════════════════════════════════════
+function getActiveKey() {
+  return state.apiProvider === 'openai' ? state.openaiKey : state.apiKey;
+}
+
+async function callAI(system, user, maxTokens = 400) {
+  const key = getActiveKey();
+  if (!key) throw new Error('no_key');
+
+  if (state.apiProvider === 'openai') {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        max_tokens: maxTokens,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API error ${res.status}`);
+    }
+    const data = await res.json();
+    return data.choices[0].message.content.trim();
+  } else {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: maxTokens,
+        system,
+        messages: [{ role: 'user', content: user }],
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API error ${res.status}`);
+    }
+    const data = await res.json();
+    return data.content[0].text.trim();
+  }
+}
+
+const getImproveSystem = (customerName) =>
+  `You are an internal review assistant for GetAccept. Your job is to rewrite a raw answer into a polished, natural G2 review answer — as if written by a real employee at ${customerName}.
+
+VOICE: Vary the perspective based on the question type. Use these guidelines:
+
+- Questions about what the company does or uses GetAccept for → use "${customerName}" as subject: "At ${customerName}, we use GetAccept for…" or "${customerName} uses GetAccept to…"
+- Questions about problems solved or switching → third person is fine: "${customerName} struggled with… / They switched from…"
+- Questions about what you enjoy, find helpful, or think works well → use first person "I" or "we": "I really like how…", "We love that…", "What works really well for us is…"
+- Questions about onboarding experience → first person: "Getting started was…", "We found the onboarding…"
+- Questions about missing features or improvements → first person or "we": "I'd love to see…", "We'd find it useful if…"
+- Questions about company size → third person, factual: "${customerName} has around X employees."
+
+Mix it up — the answers should not all start the same way. The goal is to sound like a real person at the company, not a press release.
+
+STYLE: Natural and human. Clear and concise. Max 2-3 sentences. No buzzwords, no hype, no emojis. Never invent numbers or metrics.
+
+CONTENT: Answer the specific question asked — do not add unrelated GetAccept features. Only mention Digital Sales Rooms, e-sign, proposals, or stakeholder alignment if they are directly relevant to what the question is about.
+
+If the question is about problems solved → focus on what was broken before and what improved.
+If the question is about features → name the specific feature and what it does for them.
+If the question is about improvements/missing features → be honest and constructive, or affirm satisfaction if "None" was selected.
+If the question is about switching → name what they left and why.
+If the question is about onboarding → describe the experience of getting started.
+If the question is about company size → just state the size naturally in a sentence.
+
+Return ONLY the improved answer text, nothing else.`;
+
+const VARY_SYSTEM = `Rephrase the following G2 review answer so it sounds like a different person wrote it. Change the sentence structure, vary the word choices, and adjust the opening. Keep all the same facts and meaning. Do not add new claims. Keep the same perspective (first person "I"/"we", or third person) as the original — do not switch voice. Natural, human tone. Max 2-3 sentences. Return ONLY the rephrased text, nothing else.`;
+
+async function improveAnswer(questionText, rawAnswer) {
+  return callAI(getImproveSystem(state.customerName), `Question: ${questionText}\nAnswer: ${rawAnswer}`);
+}
+
+async function varyAnswer(answer) {
+  return callAI(VARY_SYSTEM, answer);
+}
+
+async function generateEmail(language, customerName) {
+  const context = state.answers.slice(0, -1)
+    .map((a, i) => `Q: ${a.questionText}\nA: ${a.finalAnswer}`)
+    .join('\n\n');
+
+  const system = `You are a GetAccept team member writing a short outreach email to a customer asking them to write a G2 review. Write in ${language}. The email should be short, warm, informal, framed as asking for help. Mention that an example has been prepared to make it easy for them. Say they should edit it to reflect their real experience. Be human, not salesy, not pushy.
+
+After your warm intro and request, include a short instruction block formatted exactly like this (translate the labels into ${language} but keep the URL and platform names in English):
+
+---
+Here's how to leave the review (takes about 5 minutes):
+
+1. Go to: https://www.g2.com/products/getaccept/review_modalities/new
+2. Choose a review format — the Chat option is easiest if you want to paste in answers
+3. G2 will ask you to verify your identity with LinkedIn or Google before you start
+---
+
+End with a warm closing. Return ONLY the email text, no subject line label.`;
+
+  return callAI(system, `Customer: ${customerName}\n\nContext:\n${context}`, 700);
+}
+
+// ════════════════════════════════════════════════════════
+//  RENDER ROUTER
+// ════════════════════════════════════════════════════════
+function render() {
+  const c = document.getElementById('appContainer');
+  switch (state.screen) {
+    case 'welcome':     c.innerHTML = renderWelcome();     break;
+    case 'question':    c.innerHTML = renderQuestion();    break;
+    case 'auto-answer': c.innerHTML = renderAutoAnswer();  break;
+    case 'summary':     c.innerHTML = renderSummary();     break;
+    case 'pdf':         c.innerHTML = renderPDF();         break;
+    case 'email':       c.innerHTML = renderEmail();       break;
+  }
+  updateProgress();
+  updateSettingsPanel();
+}
+
+function updateProgress() {
+  const steps = { welcome: 0, question: null, 'auto-answer': 85, summary: 90, pdf: 95, email: 100 };
+  let pct = steps[state.screen];
+  if (pct === null) {
+    const total = (activeQuestions.length || 11) + 1;
+    pct = Math.round(5 + ((state.currentQuestionIndex) / total) * 78);
+  }
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+// ════════════════════════════════════════════════════════
+//  WELCOME
+// ════════════════════════════════════════════════════════
+function renderWelcome() {
+  return `<div class="screen"><div class="card">
+    <div class="welcome-hero">
+      <h1>G2 Review Assistant</h1>
+      <p>Welcome — I will help you write example reviews for a specific customer which you can share to help them write a review. You can use talk-to-text if you prefer instead of typing.</p>
+    </div>
+    <div class="field">
+      <label>Customer name</label>
+      <input type="text" id="customerName" placeholder="e.g. Acme Corp" value="${esc(state.customerName)}" onkeydown="if(event.key==='Enter')startFlow()">
+    </div>
+    <div class="field">
+      <label>Number of users you will share with</label>
+      <input type="number" id="numUsers" min="1" max="20" value="${state.numUsers}" placeholder="1" onkeydown="if(event.key==='Enter')startFlow()">
+    </div>
+    ${!getActiveKey() ? `<div class="alert-warn">No API key set. Open Settings (gear icon) to add your API key — needed for AI-generated suggestions.</div>` : ''}
+    <button class="btn btn-primary btn-full" style="margin-top:18px" onclick="startFlow()">
+      Get started
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+    <div style="text-align:center;margin-top:12px">
+      <button class="btn btn-ghost" style="font-size:12px;color:var(--text-muted)" onclick="loadTestData()">
+        🧪 Skip to PDF with test data
+      </button>
+    </div>
+  </div></div>`;
+}
+
+function startFlow() {
+  const name = document.getElementById('customerName').value.trim();
+  const users = Math.max(1, parseInt(document.getElementById('numUsers').value) || 1);
+  if (!name) { showToast('Please enter a customer name'); return; }
+  state.customerName = name;
+  state.numUsers = users;
+  state.pdfVersions = users;
+  state.answers = [];
+  state.currentQuestionIndex = 0;
+  state.currentRaw = '';
+  state.currentSuggested = '';
+  state.currentSelectedExamples = [];
+  buildActiveQuestions();
+  state.screen = 'question';
+  render();
+}
+
+function loadTestData() {
+  state.customerName = 'Acme Corp';
+  state.numUsers = 3;
+  state.pdfVersions = 3;
+  state.pdfProgress = [];
+  state.pdfGenerating = false;
+  state.currentQuestionIndex = 0;
+  state.currentRaw = '';
+  state.currentSuggested = '';
+  state.currentSelectedExamples = [];
+
+  state.answers = [
+    {
+      questionText: "What do your customers use GetAccept for?",
+      rawAnswer: "Digital Sales Rooms and e-signatures",
+      finalAnswer: "Acme Corp uses GetAccept to manage their entire deal process — from creating Digital Sales Rooms to sending proposals and collecting e-signatures. It gives their sales team a single structured space to move deals forward."
+    },
+    {
+      questionText: "What problems does GetAccept solve for your customer in their process?",
+      rawAnswer: "Too much back and forth on email, no visibility",
+      finalAnswer: "Acme Corp struggled with scattered email threads and no clear visibility into where deals stood. GetAccept replaced that with a structured process that keeps all stakeholders aligned and reduces unnecessary back and forth."
+    },
+    {
+      questionText: "What does your customer find most helpful about GetAccept when managing deals or agreements? Are there any specific features that make it particularly effective for their needs?",
+      rawAnswer: "The tracking and notifications when someone opens a document",
+      finalAnswer: "Acme Corp finds the real-time document tracking especially valuable — knowing exactly when a prospect opens a proposal lets their team follow up at the right moment. The e-signature flow also makes closing straightforward and fast."
+    },
+    {
+      questionText: "What does your customer particularly enjoy or think works especially well with GetAccept?",
+      rawAnswer: "Easy to use, looks professional",
+      finalAnswer: "Acme Corp appreciates how polished the buyer experience feels. Documents look professional without requiring design work, and the platform is intuitive enough that their team adopted it quickly without much onboarding."
+    },
+    {
+      questionText: "What aspects of GetAccept could be improved or don't work as well for your customer?",
+      rawAnswer: "Reporting could be better",
+      finalAnswer: "Acme Corp feels the reporting and analytics could go deeper — they would benefit from more granular data on deal engagement and buyer behaviour over time."
+    },
+    {
+      questionText: "Are there any features your customer feels are missing or could make GetAccept even more valuable for their workflow?",
+      rawAnswer: "None, they are happy",
+      finalAnswer: "Acme Corp has not flagged any missing features — the platform currently covers what they need, and they have not run into any significant gaps in their workflow."
+    },
+    {
+      questionText: "Do your customers use GetAccept together with any other tools, such as a CRM or other sales tools?",
+      rawAnswer: "Salesforce and Slack",
+      finalAnswer: "Acme Corp runs GetAccept alongside Salesforce and Slack. The CRM integration keeps deal data in sync, and their team coordinates internally on active deals through Slack."
+    },
+    {
+      questionText: "Did your customer switch to GetAccept from another solution?",
+      rawAnswer: "DocuSign",
+      finalAnswer: "Acme Corp previously used DocuSign but switched to GetAccept because they needed more than just e-signatures. They wanted a platform that could handle the full proposal-to-close flow, which GetAccept provided."
+    },
+    {
+      questionText: "How was your customer's experience getting started with GetAccept?",
+      rawAnswer: "Quick and smooth, good support",
+      finalAnswer: "Acme Corp found the onboarding process quick and straightforward. The support team was responsive during setup, and their sales team was up and running within a few days."
+    },
+    {
+      questionText: "When using GetAccept, about how many people work at your customer's company?",
+      rawAnswer: "Around 200",
+      finalAnswer: "Acme Corp is a mid-sized company with around 200 employees, with a sales team of roughly 20 people actively using GetAccept."
+    },
+    {
+      questionText: "How likely is your customer to recommend GetAccept to a colleague? (1–10)",
+      rawAnswer: "10",
+      finalAnswer: "10 out of 10. We always recommend a rating of 10 — in the G2 ranking system, anything below a 10 actively lowers our score relative to competitors. The gap between top-ranked products is tight."
+    }
+  ];
+
+  buildActiveQuestions();
+  state.screen = 'pdf';
+  render();
+}
+
+// ════════════════════════════════════════════════════════
+//  QUESTION
+// ════════════════════════════════════════════════════════
+function renderQuestion() {
+  const q = activeQuestions[state.currentQuestionIndex];
+  const num = state.currentQuestionIndex + 1;
+  const total = activeQuestions.length;
+  const examples = QUESTION_EXAMPLES[q.id] || [];
+  const selected = state.currentSelectedExamples;
+  const hasChips = examples.length > 0;
+  const hasSelection = selected.length > 0;
+
+  // Example chips section
+  let chipsHtml = '';
+  if (hasChips) {
+    const NONE_LABEL = 'None — no major things';
+    const chipItems = examples.map(ex => {
+      const isSelected = selected.includes(ex);
+      const isNone = ex === NONE_LABEL;
+      return `<span class="chip${isSelected ? ' selected' : ''}${isNone ? ' chip-none' : ''}" data-label="${esc(ex)}" onclick="toggleChip(this)">
+        <svg class="chip-check" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg class="chip-plus" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        ${esc(ex)}
+      </span>`;
+    }).join('');
+
+    chipsHtml = `
+      <div class="examples-section">
+        <div class="examples-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Quick select — pick all that apply
+        </div>
+        <div class="chips-wrap">${chipItems}</div>
+      </div>`;
+  }
+
+  // Suggestion / loading area
+  let extraHtml = '';
+  if (state.isLoading) {
+    extraHtml = `<div class="suggestion-wrap"><div class="loading-wrap"><div class="spinner"></div>Generating suggestion…</div></div>`;
+  } else if (state.currentSuggested) {
+    extraHtml = `
+      <div class="suggestion-wrap">
+        <div class="suggestion-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          AI suggestion
+        </div>
+        <div class="suggestion-card" id="suggestionCard">${esc(state.currentSuggested)}</div>
+        <div class="btn-row" style="justify-content:space-between;align-items:center;">
+          <button class="btn btn-ghost" style="font-size:13px" id="editBtn" onclick="startEditSuggestion()">Edit before using</button>
+          <button class="btn btn-primary" id="useBtn" onclick="useAnswer()">Use this answer</button>
+        </div>
+      </div>`;
+  }
+
+  // Show free-text area: always shown, but labeled differently when chips present
+  const textareaLabel = hasChips
+    ? `<div class="or-divider">Add your own comments or details</div>`
+    : '';
+
+  return `<div class="screen"><div class="card">
+    <div class="q-step">Question ${num} of ${total}</div>
+    <div class="q-text">${esc(q.text)}</div>
+    ${chipsHtml}
+    ${textareaLabel}
+    <textarea id="rawAnswer" placeholder="${hasChips ? 'Add your own answer or extra context…' : 'Type your answer here…'}" rows="${hasChips ? 3 : 4}" oninput="updateSubmitBtn()">${esc(state.currentRaw)}</textarea>
+    <button class="btn btn-primary btn-full" id="submitBtn" onclick="submitAnswer()" style="margin-top:14px"
+      ${(state.isLoading || (!state.currentSelectedExamples.length && !state.currentRaw.trim())) ? 'disabled' : ''}>
+      ${getActiveKey() ? 'Get suggestion' : 'Continue'}
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+    ${num > 1 ? `<div style="text-align:center;margin-top:8px"><button class="btn btn-ghost" style="font-size:13px" onclick="goBack()">Back</button></div>` : ''}
+    ${extraHtml}
+  </div></div>`;
+}
+
+const NONE_CHIP = 'None — no major things';
+
+function toggleChip(el) {
+  const chip = el.closest ? el.closest('.chip') : el;
+  const label = chip.dataset.label;
+  if (!label) return;
+
+  const idx = state.currentSelectedExamples.indexOf(label);
+
+  if (idx === -1) {
+    if (label === NONE_CHIP) {
+      // "None" is exclusive — deselect all other chips in the DOM
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+      state.currentSelectedExamples = [NONE_CHIP];
+    } else {
+      // Deselect "None" chip if present
+      const noneChip = document.querySelector(`.chip[data-label="${NONE_CHIP}"]`);
+      if (noneChip) noneChip.classList.remove('selected');
+      state.currentSelectedExamples = state.currentSelectedExamples.filter(s => s !== NONE_CHIP);
+      state.currentSelectedExamples.push(label);
+    }
+    chip.classList.add('selected');
+  } else {
+    chip.classList.remove('selected');
+    state.currentSelectedExamples.splice(idx, 1);
+  }
+
+  updateSubmitBtn();
+}
+
+function updateSubmitBtn() {
+  const btn = document.getElementById('submitBtn');
+  if (!btn) return;
+  const raw = (document.getElementById('rawAnswer')?.value || '').trim();
+  btn.disabled = state.isLoading || (!raw && !state.currentSelectedExamples.length);
+}
+
+async function submitAnswer() {
+  const el = document.getElementById('rawAnswer');
+  const raw = el ? el.value.trim() : '';
+
+  // Build input from chips + free text
+  const chipsPart = state.currentSelectedExamples.length > 0
+    ? state.currentSelectedExamples.join(', ')
+    : '';
+  const combined = [chipsPart, raw].filter(Boolean).join('. ');
+
+  if (!combined) {
+    showToast('Select at least one option or write an answer');
+    if (el) el.focus();
+    return;
+  }
+
+  state.currentRaw = raw;
+
+  if (!getActiveKey()) { saveFinalAnswer(combined); return; }
+
+  state.isLoading = true;
+  state.currentSuggested = '';
+  render();
+
+  try {
+    const q = activeQuestions[state.currentQuestionIndex];
+    state.currentSuggested = await improveAnswer(q.text, combined);
+  } catch (e) {
+    if (e.message === 'no_key') {
+      showToast('Add your API key in Settings');
+    } else {
+      showToast('Could not generate suggestion — continuing with your answer');
+      state.isLoading = false;
+      saveFinalAnswer(combined);
+      return;
+    }
+  }
+
+  state.isLoading = false;
+  render();
+}
+
+function useAnswer() { saveFinalAnswer(state.currentSuggested); }
+
+function startEditSuggestion() {
+  const card = document.getElementById('suggestionCard');
+  if (!card) return;
+
+  // Replace the card div with an editable textarea
+  const ta = document.createElement('textarea');
+  ta.id = 'suggestionEdit';
+  ta.className = 'suggestion-edit';
+  ta.value = state.currentSuggested;
+  ta.rows = 4;
+  card.replaceWith(ta);
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+
+  // Swap buttons
+  const editBtn = document.getElementById('editBtn');
+  const useBtn = document.getElementById('useBtn');
+  if (editBtn) { editBtn.textContent = 'Cancel'; editBtn.setAttribute('onclick', 'cancelEditSuggestion()'); }
+  if (useBtn)  { useBtn.textContent = 'Use edited answer'; useBtn.setAttribute('onclick', 'useEditedAnswer()'); }
+}
+
+function cancelEditSuggestion() {
+  const ta = document.getElementById('suggestionEdit');
+  if (!ta) return;
+  const card = document.createElement('div');
+  card.id = 'suggestionCard';
+  card.className = 'suggestion-card';
+  card.textContent = state.currentSuggested;
+  ta.replaceWith(card);
+  const editBtn = document.getElementById('editBtn');
+  const useBtn  = document.getElementById('useBtn');
+  if (editBtn) { editBtn.textContent = 'Edit before using'; editBtn.setAttribute('onclick', 'startEditSuggestion()'); }
+  if (useBtn)  { useBtn.textContent = 'Use this answer'; useBtn.setAttribute('onclick', 'useAnswer()'); }
+}
+
+function useEditedAnswer() {
+  const ta = document.getElementById('suggestionEdit');
+  const text = (ta ? ta.value : state.currentSuggested).trim();
+  if (!text) { showToast('Answer cannot be empty'); return; }
+  saveFinalAnswer(text);
+}
+
+function saveFinalAnswer(finalAnswer) {
+  const q = activeQuestions[state.currentQuestionIndex];
+  state.answers[state.currentQuestionIndex] = {
+    questionText: q.text,
+    rawAnswer: state.currentRaw,
+    finalAnswer,
+    selectedExamples: [...state.currentSelectedExamples],
+  };
+
+  const nextIndex = state.currentQuestionIndex + 1;
+
+  if (nextIndex >= activeQuestions.length) {
+    state.screen = 'auto-answer';
+  } else {
+    // Rebuild after Q4 to decide if conditional Q5 applies
+    if (state.currentQuestionIndex === 3) buildActiveQuestions();
+    state.currentQuestionIndex = nextIndex;
+    // Restore any previously saved input for this question
+    const existing = state.answers[nextIndex];
+    state.currentRaw = existing?.rawAnswer || '';
+    state.currentSelectedExamples = existing?.selectedExamples ? [...existing.selectedExamples] : [];
+    state.currentSuggested = '';
+    state.screen = 'question';
+  }
+  render();
+}
+
+function goBack() {
+  if (state.currentQuestionIndex > 0) {
+    state.currentQuestionIndex--;
+    const prev = state.answers[state.currentQuestionIndex];
+    state.currentRaw = prev?.rawAnswer || prev?.finalAnswer || '';
+    state.currentSelectedExamples = prev?.selectedExamples ? [...prev.selectedExamples] : [];
+    state.currentSuggested = '';
+    render();
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  AUTO-ANSWER (Q12)
+// ════════════════════════════════════════════════════════
+function renderAutoAnswer() {
+  return `<div class="screen"><div class="card">
+    <div class="q-step">Question 12 of 12</div>
+    <div class="q-text">How likely is your customer to recommend GetAccept to a colleague? (1–10)</div>
+    <div class="auto-badge">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+      Auto-answered
+    </div>
+    <div class="rating-display">10 <span style="font-size:20px;color:var(--text-muted);font-weight:400">/ 10</span></div>
+    <div class="suggestion-card" style="margin-bottom:0">
+      We always recommend a rating of 10. In the G2 ranking system, anything below a 10 actively lowers our score relative to competitors — the gap between top-ranked products is tight, and a 10 is what keeps us competitive.
+    </div>
+    <button class="btn btn-primary" style="margin-top:18px" onclick="proceedToSummary()">
+      Continue to summary
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+  </div></div>`;
+}
+
+function proceedToSummary() {
+  state.answers.push({
+    questionText: "How likely is your customer to recommend GetAccept to a colleague? (1–10)",
+    rawAnswer: "10",
+    finalAnswer: "10 out of 10. We always recommend a rating of 10 — in the G2 ranking system, anything below a 10 actively lowers our score relative to competitors. The gap between top-ranked products is tight.",
+  });
+  state.screen = 'summary';
+  render();
+}
+
+// ════════════════════════════════════════════════════════
+//  SUMMARY
+// ════════════════════════════════════════════════════════
+function renderSummary() {
+  const items = state.answers.map((a, i) => `
+    <div class="summary-item">
+      <div class="summary-q">Q${i + 1} — ${esc(a.questionText.length > 65 ? a.questionText.slice(0, 62) + '…' : a.questionText)}</div>
+      <div class="summary-a">${esc(a.finalAnswer)}</div>
+    </div>`).join('');
+
+  return `<div class="screen"><div class="card">
+    <div class="q-step">All questions answered</div>
+    <div class="section-title">${esc(state.customerName)}</div>
+    <div class="section-sub">${state.answers.length} answers ready to export</div>
+    ${items}
+    <div class="btn-row" style="margin-top:22px">
+      <button class="btn btn-primary" onclick="state.screen='pdf';render()">
+        Generate PDFs
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </button>
+      <button class="btn btn-ghost" onclick="editAnswers()">Edit answers</button>
+    </div>
+  </div></div>`;
+}
+
+function editAnswers() {
+  state.screen = 'question';
+  state.currentQuestionIndex = activeQuestions.length - 1;
+  const last = state.answers[state.currentQuestionIndex];
+  state.currentRaw = last?.rawAnswer || last?.finalAnswer || '';
+  state.currentSelectedExamples = last?.selectedExamples ? [...last.selectedExamples] : [];
+  state.currentExampleComment = last?.exampleComment || '';
+  state.currentSuggested = '';
+  render();
+}
+
+// ════════════════════════════════════════════════════════
+//  PDF GENERATION
+// ════════════════════════════════════════════════════════
+function renderPDF() {
+  const done = state.pdfProgress.filter(s => s === 'done').length;
+  const total = state.pdfProgress.length;
+  const allDone = total > 0 && done === total;
+
+  const pills = state.pdfProgress.map((s, i) => {
+    const cls = s === 'done' ? 'done' : s === 'active' ? 'active' : '';
+    return `<span class="pill ${cls}">v${i + 1}</span>`;
+  }).join('');
+
+  const isGenerating = state.pdfGenerating;
+
+  return `<div class="screen"><div class="card">
+    <div class="q-step">Step 3 — Export</div>
+    <div class="section-title">Generate PDF versions</div>
+    <p class="section-sub">Each version will have slightly rephrased answers so different contacts at <strong>${esc(state.customerName)}</strong> receive unique-looking documents.</p>
+
+    ${!isGenerating && !allDone ? `
+      <label style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.7px">Number of versions</label>
+      <div class="versions-row">
+        <button class="version-btn" onclick="adjustVersions(-1)">−</button>
+        <input class="version-input" type="number" id="versionCount" value="${state.pdfVersions}" min="1" max="20"
+          onchange="state.pdfVersions=Math.max(1,Math.min(20,parseInt(this.value)||1))">
+        <button class="version-btn" onclick="adjustVersions(1)">+</button>
+        <span style="font-size:13px;color:var(--text-muted)">PDF${state.pdfVersions !== 1 ? 's' : ''}</span>
+      </div>
+      ${state.pdfVersions > 1 ? `
+        <div class="alert-info">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Your browser will download ${state.pdfVersions} files automatically. If prompted, allow multiple downloads.
+        </div>` : ''}
+      <button class="btn btn-primary btn-full" style="margin-top:16px" onclick="generatePDFs()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Generate &amp; download ${state.pdfVersions} PDF${state.pdfVersions !== 1 ? 's' : ''}
+      </button>
+      <div style="text-align:center;margin-top:8px">
+        <button class="btn btn-ghost" style="font-size:13px" onclick="state.screen='summary';render()">Back</button>
+      </div>
+    ` : ''}
+
+    ${isGenerating ? `
+      <div class="pdf-generating-wrap">
+        <div class="loading-wrap" style="justify-content:center;padding:8px 0 4px">
+          <div class="spinner"></div>
+          <span>Generating PDF ${done + 1} of ${total}… please wait</span>
+        </div>
+        <div class="progress-pills" style="justify-content:center;margin-top:12px">${pills}</div>
+        <p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:12px">
+          Files will download automatically one by one. Do not close this tab.
+        </p>
+      </div>
+    ` : ''}
+
+    ${allDone ? `
+      <div class="pdf-done-wrap">
+        <div style="font-size:32px;text-align:center;margin-bottom:8px">✓</div>
+        <div style="font-weight:600;font-size:15px;text-align:center;margin-bottom:4px">${total} PDF${total !== 1 ? 's' : ''} downloaded</div>
+        <p style="font-size:13px;color:var(--text-muted);text-align:center;margin-bottom:20px">Check your downloads folder.</p>
+        <div class="progress-pills" style="justify-content:center;margin-bottom:20px">${pills}</div>
+        <button class="btn btn-primary btn-full" onclick="state.screen='email';state.generatedEmail='';render()">
+          Next: outreach email
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    ` : ''}
+  </div></div>`;
+}
+
+function adjustVersions(delta) {
+  const el = document.getElementById('versionCount');
+  let val = Math.max(1, Math.min(20, (parseInt(el.value) || 1) + delta));
+  el.value = val;
+  state.pdfVersions = val;
+}
+
+async function generatePDFs() {
+  if (state.pdfGenerating) return; // prevent double-click
+  const count = parseInt(document.getElementById('versionCount').value) || 1;
+  state.pdfVersions = count;
+  state.pdfProgress = Array(count).fill('pending');
+  state.pdfGenerating = true;
+
+  render();
+
+  for (let i = 0; i < count; i++) {
+    state.pdfProgress[i] = 'active';
+    render();
+
+    let versionAnswers = state.answers.map(a => ({ ...a }));
+
+    if (i > 0 && getActiveKey()) {
+      // Vary each answer sequentially (avoid rate limits)
+      for (let j = 0; j < state.answers.length - 1; j++) {
+        try {
+          const varied = await varyAnswer(state.answers[j].finalAnswer);
+          versionAnswers[j].finalAnswer = varied;
+        } catch (e) {
+          // keep original on failure
+        }
+      }
+    }
+
+    buildAndDownloadPDF(versionAnswers, i + 1, count);
+
+    state.pdfProgress[i] = 'done';
+    render();
+
+    if (i < count - 1) await sleep(700);
+  }
+
+  state.pdfGenerating = false;
+  render();
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function buildAndDownloadPDF(answers, versionNum, totalVersions) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+  const ML = 20, MR = 20;
+  const PW = 210, PH = 297;
+  const CW = PW - ML - MR;
+  const LH = 6;
+  let y = 24;
+
+  const black = [0, 0, 0];
+  const grey  = [100, 100, 100];
+
+  const newPage = () => { doc.addPage(); y = 24; };
+  const checkY = (need = 16) => { if (y + need > PH - 20) newPage(); };
+
+  const writeLine = (str, size, style, color, indent = 0) => {
+    doc.setFontSize(size);
+    doc.setFont('helvetica', style);
+    doc.setTextColor(...color);
+    const lines = doc.splitTextToSize(str, CW - indent);
+    lines.forEach(l => { checkY(); doc.text(l, ML + indent, y); y += LH; });
+  };
+
+  // ── Cover page ──────────────────────────────────────
+  writeLine('G2 Review — Example Answers', 14, 'bold', black);
+  y += 3;
+  writeLine(`Customer: ${state.customerName}`, 11, 'normal', black);
+  if (totalVersions > 1) { writeLine(`Version: ${versionNum} of ${totalVersions}`, 11, 'normal', grey); }
+  y += 6;
+
+  // Instruction
+  writeLine('Note to recipient:', 10, 'bold', grey);
+  writeLine('This document contains example answers based on our understanding of how you use GetAccept. It is only meant to make writing your review easier. Please edit anything to reflect your real experience before submitting.', 10, 'normal', grey);
+
+  // ── Q&A pages ───────────────────────────────────────
+  y += 10;
+
+  answers.forEach((a, idx) => {
+    checkY(28);
+
+    // Question
+    writeLine(`Q${idx + 1}: ${a.questionText}`, 9, 'bold', grey);
+    y += 1;
+
+    // Answer
+    writeLine(a.finalAnswer, 11, 'normal', black);
+    y += 8;
+  });
+
+  // ── Full review ─────────────────────────────────────
+  checkY(30);
+  doc.setDrawColor(180, 180, 180);
+  doc.setLineWidth(0.3);
+  doc.line(ML, y, PW - MR, y);
+  y += 8;
+
+  writeLine('Full review text', 10, 'bold', grey);
+  y += 2;
+
+  const narrative = answers.slice(0, -1)
+    .filter(a => a.finalAnswer && a.finalAnswer.length > 8)
+    .map(a => a.finalAnswer)
+    .join(' ');
+  writeLine(narrative, 11, 'normal', black);
+
+  // ── Page numbers ────────────────────────────────────
+  const np = doc.getNumberOfPages();
+  for (let p = 1; p <= np; p++) {
+    doc.setPage(p);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...grey);
+    doc.text(`${p} / ${np}`, PW - MR, PH - 10, { align: 'right' });
+  }
+
+  const safeName = state.customerName.replace(/[^a-zA-Z0-9]/g, '_');
+  doc.save(`${safeName}_G2_Review_v${versionNum}.pdf`);
+}
+
+// ════════════════════════════════════════════════════════
+//  EMAIL
+// ════════════════════════════════════════════════════════
+const EMAIL_LANGUAGES = [
+  { value: 'Swedish',    label: '🇸🇪  Swedish'   },
+  { value: 'English',    label: '🇬🇧  English'   },
+  { value: 'Danish',     label: '🇩🇰  Danish'    },
+  { value: 'French',     label: '🇫🇷  French'    },
+  { value: 'Norwegian',  label: '🇳🇴  Norwegian' },
+  { value: 'other',      label: '✏️  Other'      },
+];
+
+function renderEmail() {
+  const presets = EMAIL_LANGUAGES.map(l => l.value);
+  const isOther = state.emailLanguage && !presets.includes(state.emailLanguage);
+  const selectVal = isOther ? 'other' : (state.emailLanguage || 'English');
+
+  return `<div class="screen"><div class="card">
+    <div class="q-step">Step 4 — Outreach</div>
+    <div class="section-title">Outreach email</div>
+    <p class="section-sub">Generate a short email to send alongside the PDF. Choose a language:</p>
+
+    <div class="field">
+      <label>Language</label>
+      <select id="emailLangSelect" onchange="onLangSelectChange()" style="font-size:15px;padding:10px 13px">
+        ${EMAIL_LANGUAGES.map(l =>
+          `<option value="${esc(l.value)}" ${selectVal === l.value ? 'selected' : ''}>${esc(l.label)}</option>`
+        ).join('')}
+      </select>
+    </div>
+    <div class="field" id="otherLangField" style="display:${isOther ? 'block' : 'none'}">
+      <label>Specify language</label>
+      <input type="text" id="emailLangOther" placeholder="e.g. German, Spanish…" value="${esc(isOther ? state.emailLanguage : '')}">
+    </div>
+
+    ${state.isLoading ? `<div class="loading-wrap"><div class="spinner"></div>Writing email…</div>` : ''}
+
+    ${state.generatedEmail ? `
+      <div class="suggestion-label" style="margin-top:14px">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+        </svg>
+        Generated email
+      </div>
+      <div class="email-box">${esc(state.generatedEmail)}</div>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn btn-secondary" onclick="copyEmail()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy
+        </button>
+        <button class="btn btn-ghost" onclick="getEmail()">Regenerate</button>
+      </div>` : ''}
+
+    <div class="btn-row" style="margin-top:${state.generatedEmail ? '18px' : '4px'}">
+      <button class="btn btn-primary" onclick="getEmail()" ${state.isLoading ? 'disabled' : ''}>
+        ${state.generatedEmail ? 'New version' : 'Generate email'}
+      </button>
+      <button class="btn btn-ghost" onclick="state.screen='pdf';render()">Back</button>
+    </div>
+  </div></div>`;
+}
+
+function onLangSelectChange() {
+  const sel = document.getElementById('emailLangSelect');
+  const otherField = document.getElementById('otherLangField');
+  if (otherField) otherField.style.display = sel.value === 'other' ? 'block' : 'none';
+  if (sel.value !== 'other') state.emailLanguage = sel.value;
+}
+
+async function getEmail() {
+  const sel = document.getElementById('emailLangSelect');
+  let lang = sel ? sel.value : 'English';
+  if (lang === 'other') {
+    lang = (document.getElementById('emailLangOther')?.value.trim()) || '';
+    if (!lang) { showToast('Please specify the language'); document.getElementById('emailLangOther')?.focus(); return; }
+  }
+  state.emailLanguage = lang;
+
+  if (!getActiveKey()) { showToast('Add your API key in Settings'); return; }
+
+  state.isLoading = true;
+  state.generatedEmail = '';
+  render();
+
+  try {
+    state.generatedEmail = await generateEmail(lang, state.customerName);
+  } catch (e) {
+    showToast('Could not generate email — please try again');
+  }
+
+  state.isLoading = false;
+  render();
+}
+
+function copyEmail() {
+  navigator.clipboard.writeText(state.generatedEmail)
+    .then(() => showToast('Copied to clipboard!'))
+    .catch(() => showToast('Select the text above and copy manually'));
+}
+
+// ════════════════════════════════════════════════════════
+//  SETTINGS
+// ════════════════════════════════════════════════════════
+function toggleSettings() {
+  const o = document.getElementById('settingsOverlay');
+  o.style.display = o.style.display === 'none' ? 'flex' : 'none';
+  updateSettingsPanel();
+}
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('settingsOverlay')) toggleSettings();
+}
+function selectProvider(provider) {
+  state.apiProvider = provider;
+  localStorage.setItem('ga_api_provider', provider);
+  updateSettingsPanel();
+  if (state.screen === 'welcome') render();
+}
+function updateSettingsPanel() {
+  const isOpenAI = state.apiProvider === 'openai';
+
+  // Tabs
+  const tabA = document.getElementById('tabAnthropic');
+  const tabO = document.getElementById('tabOpenAI');
+  if (tabA) tabA.classList.toggle('active', !isOpenAI);
+  if (tabO) tabO.classList.toggle('active', isOpenAI);
+
+  // Sections
+  const secA = document.getElementById('sectionAnthropic');
+  const secO = document.getElementById('sectionOpenAI');
+  if (secA) secA.style.display = isOpenAI ? 'none' : 'block';
+  if (secO) secO.style.display = isOpenAI ? 'block' : 'none';
+
+  // Key displays
+  const dA = document.getElementById('keyDisplayAnthropic');
+  if (dA) dA.textContent = state.apiKey ? state.apiKey.slice(0, 14) + '••••••••••••' : 'No key saved';
+  const dO = document.getElementById('keyDisplayOpenAI');
+  if (dO) dO.textContent = state.openaiKey ? state.openaiKey.slice(0, 7) + '••••••••••••' : 'No key saved';
+
+  // Clear inputs
+  const inpA = document.getElementById('apiKeyAnthropic');
+  if (inpA) inpA.value = '';
+  const inpO = document.getElementById('apiKeyOpenAI');
+  if (inpO) inpO.value = '';
+}
+function saveApiKey(provider) {
+  if (provider === 'openai') {
+    const key = document.getElementById('apiKeyOpenAI').value.trim();
+    if (!key) { showToast('Please enter a key'); return; }
+    if (!key.startsWith('sk-')) { showToast('OpenAI key should start with sk-'); return; }
+    state.openaiKey = key;
+    localStorage.setItem('ga_openai_key', key);
+  } else {
+    const key = document.getElementById('apiKeyAnthropic').value.trim();
+    if (!key) { showToast('Please enter a key'); return; }
+    if (!key.startsWith('sk-ant-')) { showToast('Anthropic key should start with sk-ant-'); return; }
+    state.apiKey = key;
+    localStorage.setItem('ga_api_key', key);
+  }
+  showToast('API key saved!');
+  updateSettingsPanel();
+  toggleSettings();
+  if (state.screen === 'welcome') render();
+}
+function resetApp() {
+  if (!confirm('Clear all data and start over?')) return;
+  localStorage.removeItem('ga_api_key');
+  localStorage.removeItem('ga_openai_key');
+  localStorage.removeItem('ga_api_provider');
+  Object.assign(state, {
+    screen: 'welcome', customerName: '', numUsers: 1,
+    currentQuestionIndex: 0, answers: [],
+    currentRaw: '', currentSuggested: '', isLoading: false,
+    apiKey: '', openaiKey: '', apiProvider: 'anthropic',
+    pdfVersions: 1, pdfProgress: [], pdfGenerating: false,
+    generatedEmail: '', emailLanguage: '',
+    currentSelectedExamples: [],
+  });
+  toggleSettings();
+  render();
+  showToast('All data cleared');
+}
+
+// ════════════════════════════════════════════════════════
+//  UTILITIES
+// ════════════════════════════════════════════════════════
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+function showToast(msg, dur = 3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.classList.remove('show'), dur);
+}
+
+// ════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════
+buildActiveQuestions();
+render();
+updateSettingsPanel(); // apply saved provider state to tabs on load
+</script>
+</body>
+</html>
