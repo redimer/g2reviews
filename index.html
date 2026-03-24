@@ -463,6 +463,7 @@ const state = {
   pdfGenerating: false,
   generatedEmail: '',
   emailLanguage: '',
+  giftCard: false,
 };
 
 // ════════════════════════════════════════════════════════
@@ -630,12 +631,16 @@ async function varyAnswer(answer) {
   return callAI(VARY_SYSTEM, answer);
 }
 
-async function generateEmail(language, customerName) {
+async function generateEmail(language, customerName, includeGiftCard) {
   const context = state.answers.slice(0, -1)
     .map((a, i) => `Q: ${a.questionText}\nA: ${a.finalAnswer}`)
     .join('\n\n');
 
-  const system = `You are a GetAccept team member writing a short outreach email to a customer asking them to write a G2 review. Write in ${language}. The email should be short, warm, informal, framed as asking for help. Mention that an example has been prepared to make it easy for them. Say they should edit it to reflect their real experience. Be human, not salesy, not pushy.
+  const giftCardLine = includeGiftCard
+    ? `\n\nAlso include a natural, warm sentence mentioning that as a thank you, you will send them a $20 Amazon gift card once they've published their review. Keep it casual, not transactional.`
+    : '';
+
+  const system = `You are a GetAccept team member writing a short outreach email to a customer asking them to write a G2 review. Write in ${language}. The email should be short, warm, informal, framed as asking for help. Mention that an example has been prepared to make it easy for them. Say they should edit it to reflect their real experience. Be human, not salesy, not pushy.${giftCardLine}
 
 After your warm intro and request, include a short instruction block formatted exactly like this (translate the labels into ${language} but keep the URL and platform names in English):
 
@@ -649,7 +654,7 @@ Here's how to leave the review (takes about 5 minutes):
 
 End with a warm closing. Return ONLY the email text, no subject line label.`;
 
-  return callAI(system, `Customer: ${customerName}\n\nContext:\n${context}`, 700);
+  return callAI(system, `Customer: ${customerName}\n\nContext:\n${context}`, 750);
 }
 
 // ════════════════════════════════════════════════════════
@@ -1349,6 +1354,14 @@ function renderEmail() {
       <input type="text" id="emailLangOther" placeholder="e.g. German, Spanish…" value="${esc(isOther ? state.emailLanguage : '')}">
     </div>
 
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:4px;cursor:pointer" onclick="state.giftCard=!state.giftCard;this.querySelector('input').checked=state.giftCard;this.style.borderColor=state.giftCard?'var(--primary)':'var(--border)';this.style.background=state.giftCard?'#f3eeff':'var(--bg)';" style="border-color:${state.giftCard ? 'var(--primary)' : 'var(--border)'};background:${state.giftCard ? '#f3eeff' : 'var(--bg)'}">
+      <input type="checkbox" ${state.giftCard ? 'checked' : ''} onclick="event.stopPropagation();state.giftCard=this.checked" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;flex-shrink:0">
+      <div>
+        <div style="font-size:13.5px;font-weight:600;color:var(--text-primary)">Include $20 Amazon gift card offer</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Adds a thank-you line to the email mentioning a gift card</div>
+      </div>
+    </div>
+
     ${state.isLoading ? `<div class="loading-wrap"><div class="spinner"></div>Writing email…</div>` : ''}
 
     ${state.generatedEmail ? `
@@ -1399,7 +1412,7 @@ async function getEmail() {
   render();
 
   try {
-    state.generatedEmail = await generateEmail(lang, state.customerName);
+    state.generatedEmail = await generateEmail(lang, state.customerName, state.giftCard);
   } catch (e) {
     showToast('Could not generate email — please try again');
   }
@@ -1488,7 +1501,7 @@ function resetApp() {
     currentRaw: '', currentSuggested: '', isLoading: false,
     apiKey: '', openaiKey: '', apiProvider: 'anthropic',
     pdfVersions: 1, pdfProgress: [], pdfGenerating: false,
-    generatedEmail: '', emailLanguage: '',
+    generatedEmail: '', emailLanguage: '', giftCard: false,
     currentSelectedExamples: [],
   });
   toggleSettings();
